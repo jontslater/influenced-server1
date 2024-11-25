@@ -3,7 +3,6 @@ from rest_framework.response import Response
 from rest_framework import serializers, status
 from influencedapi.models import Job, User
 from django.shortcuts import get_object_or_404
-from django.db.models import Q
 
 class JobView(ViewSet):
     def retrieve(self, request, pk):
