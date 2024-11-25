@@ -3,41 +3,46 @@ from rest_framework.response import Response
 from rest_framework import serializers, status
 from influencedapi.models import Job, User
 from django.shortcuts import get_object_or_404
+from django.db.models import Q
 
 class JobView(ViewSet):
     def retrieve(self, request, pk):
         """Handle GET requests for a single job"""
         try:
-            user = Job.objects.get(pk=pk)
-            serializer =JobSerializer(user)
+            job = Job.objects.get(pk=pk)
+            serializer = JobSerializer(job)
             return Response(serializer.data)
         except Job.DoesNotExist:
-            return Response({'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND) 
+            return Response({'message': 'Job not found'}, status=status.HTTP_404_NOT_FOUND)
           
     def list(self, request):
-        """Handle GET requests for all jobs"""
-        jobs = Job.objects.all()
+        """Handle GET requests for all jobs or filter by user_id"""
+        client_id = request.query_params.get('client_id')
+        if client_id:
+            jobs = Job.objects.filter(client_id=client_id)
+        else:
+            jobs = Job.objects.all()
+
         serializer = JobSerializer(jobs, many=True)
         return Response(serializer.data)
-      
+
+
+
     def create(self, request):
         """Handle POST requests to create a new job"""
         try:
-            # Validate foreign key references
             client = get_object_or_404(User, id=request.data["client_id"])
-            accepted_by = get_object_or_404(User, id=request.data["acceptedBy"])
+            accepted_by = get_object_or_404(User, id=request.data["acceptedBy"]) if request.data.get("acceptedBy") else None
             
-            # Create a new Job object
             job = Job.objects.create(
                 description=request.data["description"],
                 client_id=client,
-                accepted=request.data["accepted"],
-                pay=request.data["pay"],
+                accepted=request.data.get("accepted", False),
+                pay=request.data.get("pay", 0),
                 acceptedBy=accepted_by,
-                complete=request.data["complete"]
+                complete=request.data.get("complete", False)
             )
             
-            # Serialize the created job and return the response
             serializer = JobSerializer(job)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         
@@ -50,7 +55,6 @@ class JobView(ViewSet):
         """Handle PUT/PATCH requests to update a job"""
         job = get_object_or_404(Job, pk=pk)
 
-        # Validate foreign key references
         client_id = request.data.get("client_id")
         accepted_by_id = request.data.get("acceptedBy")
         if client_id:
@@ -62,7 +66,6 @@ class JobView(ViewSet):
         else:
             accepted_by = job.acceptedBy
 
-        # Update job instance
         job.description = request.data.get("description", job.description)
         job.client_id = client
         job.accepted = request.data.get("accepted", job.accepted)
@@ -80,10 +83,14 @@ class JobView(ViewSet):
         job = get_object_or_404(Job, pk=pk)
         job.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)               
-          
+
 class JobSerializer(serializers.ModelSerializer):
     class Meta:
         model = Job
-        fields = ['id', 'description', 'created_on', 'client_id', 'accepted', 'pay', 'acceptedBy', 'complete','client_rating']
-        # add client_rating from user/client view via serializer
-        depth = 2          
+        fields = ['id', 'description', 'created_on', 'client_id', 'accepted', 'pay', 'acceptedBy', 'complete']
+        depth = 1
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'userName', 'rating', 'client', 'bio', 'uid']
