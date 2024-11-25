@@ -34,25 +34,23 @@ def check_user(request):
 
 @api_view(['POST'])
 def register_user(request):
-    '''Handles the creation of a new rare_user for authentication
-
-    Method arguments:
-      request -- The full HTTP request object
-    '''
+    '''Handles the creation of a new user for authentication'''
 
     user = User.objects.create(
+        bio=request.data['bio'],
+        userName=request.data['userName'],
+        client=request.data['client'],
         uid=request.data['uid'],
-        name=request.data['name'],
-        username=request.data['username'],
-        email=request.data['email'],
+        rating=0  # Set default rating to 0 or null if preferred
     )
 
     # Return the user info to the client
     data = {
         'id': user.id,
         'uid': user.uid,
-        'name': user.name,
-        'username': user.username,
-        'email': user.email,
+        'userName': user.userName,
+        'bio': user.bio,
+        'client': user.client,
+        'rating': user.rating,  # The rating will be returned as 0
     }
     return Response(data)
