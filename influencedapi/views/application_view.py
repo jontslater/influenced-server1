@@ -31,8 +31,9 @@ class ApplicationViewSet(ModelViewSet):
         """Handle POST requests to apply for a job."""
         applicant_id = request.data.get("applicant_id")
         job_id = request.data.get("job_id")
+        message = request.data.get("message")  # Get message from the request
 
-        # Validate presence of applicant and job
+        # Validate presence of applicant, job, and message
         if not applicant_id or not job_id:
             raise ValidationError({"detail": "Applicant ID and Job ID are required."})
 
@@ -52,10 +53,15 @@ class ApplicationViewSet(ModelViewSet):
             poster=poster,
         )
 
-        # Response logic
+        # Save the message (cover letter) if it's a new application
         if created:
-            serializer = self.get_serializer(application)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            application.message = message
+            application.save()
+
+            return Response(
+                {"detail": "Application submitted successfully."},
+                status=status.HTTP_201_CREATED,
+            )
         else:
             return Response(
                 {"detail": "You have already applied for this job."},
