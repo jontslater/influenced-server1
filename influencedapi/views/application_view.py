@@ -1,8 +1,9 @@
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
-from influencedapi.models import Application, Job
+from influencedapi.models import Application, Job, User
 from rest_framework import serializers
 
 class ApplicationSerializer(serializers.ModelSerializer):
@@ -14,33 +15,58 @@ class ApplicationViewSet(ModelViewSet):
     queryset = Application.objects.all()
     serializer_class = ApplicationSerializer
 
+    def retrieve(self, request, *args, **kwargs):
+        """Retrieve a single application by its ID."""
+        application = self.get_object()  # Fetch the application object
+        
+        # Optional: Add any additional logic, like permission checks
+        if application.applicant != request.user and application.poster != request.user:
+            return Response({"error": "You are not authorized to view this application."},
+                            status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = self.get_serializer(application)
+        return Response(serializer.data)
+
     def create(self, request, *args, **kwargs):
         """Handle POST requests to apply for a job."""
-        applicant = request.user
-        job_id = request.data.get('job_id')
-        
-        # Ensure job and poster exist
+        applicant_id = request.data.get("applicant_id")
+        job_id = request.data.get("job_id")
+        message = request.data.get("message")  # Get message from the request
+
+        # Validate presence of applicant, job, and message
+        if not applicant_id or not job_id:
+            raise ValidationError({"detail": "Applicant ID and Job ID are required."})
+
+        # Retrieve instances
+        applicant = get_object_or_404(User, id=applicant_id)
         job = get_object_or_404(Job, id=job_id)
-        poster = job.client_id
-        
-        # Check if the applicant is trying to apply to their own job
-        if applicant.id == poster.id:
-            return Response({"error": "You cannot apply to your own job."},
-                            status=status.HTTP_400_BAD_REQUEST)
-        
-        # Create application
+        poster = job.client_id  # The user who created the job
+
+        # Business rules
+        if applicant == poster:
+            raise ValidationError({"detail": "You cannot apply to your own job."})
+
+        # Create or check for existing application
         application, created = Application.objects.get_or_create(
             applicant=applicant,
             job=job,
-            poster=poster
+            poster=poster,
         )
 
+        # Save the message (cover letter) if it's a new application
         if created:
-            serializer = self.get_serializer(application)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            application.message = message
+            application.save()
+
+            return Response(
+                {"detail": "Application submitted successfully."},
+                status=status.HTTP_201_CREATED,
+            )
         else:
-            return Response({"message": "You have already applied for this job."},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "You have already applied for this job."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     def list(self, request, *args, **kwargs):
         """List applications for a particular job or applicant."""
@@ -62,13 +88,13 @@ class ApplicationViewSet(ModelViewSet):
         application = self.get_object()  # Fetch the application object
         job_id = request.data.get('job_id')
         
-        # Check if the job is valid
+        # Check if the job is valid and update
         if job_id:
             job = get_object_or_404(Job, id=job_id)
             application.job = job  # Update the job for the application
         
         # Check if applicant or poster is trying to update (optional check)
-        if application.applicant != request.user:
+        if application.applicant != request.user and application.poster != request.user:
             return Response({"error": "You can only update your own application."},
                             status=status.HTTP_400_BAD_REQUEST)
 

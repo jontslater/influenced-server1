@@ -26,7 +26,6 @@ class JobView(ViewSet):
         return Response(serializer.data)
 
 
-
     def create(self, request):
         """Handle POST requests to create a new job"""
         try:
