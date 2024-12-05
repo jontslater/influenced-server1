@@ -24,20 +24,26 @@ class SocialsViewSet(ViewSet):
         """Handle POST requests to create a new social"""
         try:
             print("Request Data:", request.data)
+
+            # Get the User instance
             user = get_object_or_404(User, id=request.data["user_id"])
+
+            # Create the Social instance
             social = Social.objects.create(
                 facebook=request.data.get("facebook", ""),
                 instagram=request.data.get("instagram", ""),
                 bluesky=request.data.get("bluesky", ""),
                 tiktok=request.data.get("tiktok", ""),
                 twitter=request.data.get("twitter", ""),
-                user=user  # Assign the actual User instance
+                user_id=user
             )
+
             serializer = SocialsSerializer(social)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         except KeyError as e:
             return Response({'message': f'Missing required field: {e}'}, status=status.HTTP_400_BAD_REQUEST)
+
 
     def update(self, request, pk):
         """Handle PUT requests to update a social"""
@@ -67,5 +73,4 @@ class SocialsViewSet(ViewSet):
 class SocialsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Social
-        fields = ['id', 'facebook', 'instagram', 'bluesky', 'tiktok', 'twitter', 'user_id']
-        depth = 1          
+        fields = ['id', 'facebook', 'instagram', 'bluesky', 'tiktok', 'twitter', 'user_id']         
