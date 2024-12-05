@@ -22,12 +22,14 @@ from influencedapi.views.user_view import UserView
 from influencedapi.views.job_view import JobView
 from influencedapi.views.rating_view import RatingViewSet
 from influencedapi.views.application_view import ApplicationViewSet
+from influencedapi.views.socials_view import SocialsViewSet
 
 router = routers.DefaultRouter(trailing_slash=False)
 router.register(r'users', UserView, 'user')
 router.register(r'jobs', JobView, 'job')
 router.register(r'ratings', RatingViewSet, 'rating')
 router.register(r'applications', ApplicationViewSet, basename='application')
+router.register(r'socials', SocialsViewSet , basename='social')
 
 urlpatterns = [
     path('admin/', admin.site.urls),

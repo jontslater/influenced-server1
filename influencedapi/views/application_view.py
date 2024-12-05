@@ -19,10 +19,10 @@ class ApplicationViewSet(ModelViewSet):
         """Retrieve a single application by its ID."""
         application = self.get_object()  # Fetch the application object
         
-        # Optional: Add any additional logic, like permission checks
-        if application.applicant != request.user and application.poster != request.user:
-            return Response({"error": "You are not authorized to view this application."},
-                            status=status.HTTP_403_FORBIDDEN)
+        # # Optional: Add any additional logic, like permission checks
+        # if application.applicant != request.user and application.poster != request.user:
+        #     return Response({"error": "You are not authorized to view this application."},
+        #                     status=status.HTTP_403_FORBIDDEN)
         
         serializer = self.get_serializer(application)
         return Response(serializer.data)
@@ -31,11 +31,12 @@ class ApplicationViewSet(ModelViewSet):
         """Handle POST requests to apply for a job."""
         applicant_id = request.data.get("applicant_id")
         job_id = request.data.get("job_id")
-        message = request.data.get("message")  # Get message from the request
+        message = request.data.get("message")
+        print(f"Received data: applicant_id={applicant_id}, job_id={job_id}, message={message}")
 
         # Validate presence of applicant, job, and message
-        if not applicant_id or not job_id:
-            raise ValidationError({"detail": "Applicant ID and Job ID are required."})
+        if not applicant_id or not job_id or not message:
+            raise ValidationError({"detail": "Applicant ID, Job ID, and message are required."})
 
         # Retrieve instances
         applicant = get_object_or_404(User, id=applicant_id)
@@ -67,6 +68,7 @@ class ApplicationViewSet(ModelViewSet):
                 {"detail": "You have already applied for this job."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
 
     def list(self, request, *args, **kwargs):
         """List applications for a particular job or applicant."""
@@ -108,10 +110,10 @@ class ApplicationViewSet(ModelViewSet):
         """Handle DELETE requests to remove an application."""
         application = self.get_object()  # Fetch the application object
         
-        # Check if applicant is trying to delete their own application
-        if application.applicant != request.user:
-            return Response({"error": "You can only delete your own application."},
-                            status=status.HTTP_400_BAD_REQUEST)
+        # # Check if applicant is trying to delete their own application
+        # if application.applicant != request.user:
+        #     return Response({"error": "You can only delete your own application."},
+        #                     status=status.HTTP_400_BAD_REQUEST)
         
         # Delete the application
         application.delete()

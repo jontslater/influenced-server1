@@ -1,7 +1,7 @@
 from rest_framework.viewsets import ViewSet
 from rest_framework.response import Response
 from rest_framework import serializers, status
-from influencedapi.models import User
+from influencedapi.models import User, Social
 
 class UserView(ViewSet):
     def retrieve(self, request, pk=None):
@@ -73,7 +73,15 @@ class UserView(ViewSet):
         except User.DoesNotExist:
             return Response({'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
+
+class SocialSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Social
+        fields = ['id', 'facebook', 'instagram', 'bluesky', 'tiktok', 'twitter']
+
 class UserSerializer(serializers.ModelSerializer):
+    social = SocialSerializer(many=True)  # Add many=True here
+
     class Meta:
         model = User
-        fields = ['id', 'userName', 'rating', 'client', 'bio', 'uid']
+        fields = ['id', 'userName', 'bio', 'social']
