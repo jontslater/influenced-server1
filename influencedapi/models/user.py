@@ -6,4 +6,4 @@ class User(models.Model):
     rating = models.IntegerField(default=0)
     client = models.BooleanField(default=False)
     uid = models.CharField(max_length=50, unique=True)
-    socials = models.ForeignKey("Social", on_delete=models.CASCADE)
+    socials = models.ForeignKey('Social', on_delete=models.CASCADE, null=True, blank=True)

@@ -6,10 +6,13 @@ from django.shortcuts import get_object_or_404
 from influencedapi.models import Application, Job, User
 from rest_framework import serializers
 
+
 class ApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
         fields = ['id', 'applicant', 'poster', 'job', 'applied_on']
+        depth =2
+
 
 class ApplicationViewSet(ModelViewSet):
     queryset = Application.objects.all()
@@ -17,13 +20,7 @@ class ApplicationViewSet(ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         """Retrieve a single application by its ID."""
-        application = self.get_object()  # Fetch the application object
-        
-        # # Optional: Add any additional logic, like permission checks
-        # if application.applicant != request.user and application.poster != request.user:
-        #     return Response({"error": "You are not authorized to view this application."},
-        #                     status=status.HTTP_403_FORBIDDEN)
-        
+        application = self.get_object()
         serializer = self.get_serializer(application)
         return Response(serializer.data)
 
@@ -58,7 +55,6 @@ class ApplicationViewSet(ModelViewSet):
         if created:
             application.message = message
             application.save()
-
             return Response(
                 {"detail": "Application submitted successfully."},
                 status=status.HTTP_201_CREATED,
@@ -69,19 +65,20 @@ class ApplicationViewSet(ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-
     def list(self, request, *args, **kwargs):
         """List applications for a particular job or applicant."""
         job_id = request.query_params.get('job_id')
         applicant_id = request.query_params.get('applicant_id')
 
+        # Filter applications by job_id or applicant_id
         if job_id:
             applications = Application.objects.filter(job_id=job_id)
         elif applicant_id:
             applications = Application.objects.filter(applicant_id=applicant_id)
         else:
             applications = self.get_queryset()
-        
+
+        # Serialize and return the filtered applications
         serializer = self.get_serializer(applications, many=True)
         return Response(serializer.data)
 
@@ -89,12 +86,12 @@ class ApplicationViewSet(ModelViewSet):
         """Handle PUT/PATCH requests to update an application."""
         application = self.get_object()  # Fetch the application object
         job_id = request.data.get('job_id')
-        
+
         # Check if the job is valid and update
         if job_id:
             job = get_object_or_404(Job, id=job_id)
             application.job = job  # Update the job for the application
-        
+
         # Check if applicant or poster is trying to update (optional check)
         if application.applicant != request.user and application.poster != request.user:
             return Response({"error": "You can only update your own application."},
@@ -109,12 +106,7 @@ class ApplicationViewSet(ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         """Handle DELETE requests to remove an application."""
         application = self.get_object()  # Fetch the application object
-        
-        # # Check if applicant is trying to delete their own application
-        # if application.applicant != request.user:
-        #     return Response({"error": "You can only delete your own application."},
-        #                     status=status.HTTP_400_BAD_REQUEST)
-        
+
         # Delete the application
         application.delete()
         return Response({"message": "Application deleted successfully."},

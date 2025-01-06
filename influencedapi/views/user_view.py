@@ -22,8 +22,23 @@ class UserView(ViewSet):
         serializer = UserSerializer(users, many=True)
         return Response(serializer.data)   
       
+    # def create(self, request):
+    #     """Handle POST requests to create a new user"""
+    #     try:
+    #         user = User.objects.create(
+    #             userName=request.data["userName"],
+    #             rating=request.data["rating"],
+    #             client=request.data["client"],
+    #             bio=request.data["bio"],
+    #             uid=request.data["uid"]
+    #         )
+    #         serializer = UserSerializer(user)
+    #         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    #     except KeyError as e:
+    #         return Response({'message': f'Missing required field: {e}'}, status=status.HTTP_400_BAD_REQUEST)
+    
     def create(self, request):
-        """Handle POST requests to create a new user"""
+        """Handle POST requests to create a new user and associated social record"""
         try:
             user = User.objects.create(
                 userName=request.data["userName"],
@@ -32,10 +47,15 @@ class UserView(ViewSet):
                 bio=request.data["bio"],
                 uid=request.data["uid"]
             )
+
+            # Automatically create a Social record
+            Social.objects.create(user=user)
+
             serializer = UserSerializer(user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except KeyError as e:
             return Response({'message': f'Missing required field: {e}'}, status=status.HTTP_400_BAD_REQUEST)
+
       
     def update(self, request, pk=None, uid=None):
         """Handle PUT/PATCH requests to update an existing user by id or uid"""
